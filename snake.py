@@ -12,9 +12,9 @@ from genetic_algorithm.individual import Individual
 from neural_network import FeedForwardNetwork, linear, sigmoid, tanh, relu, leaky_relu, ActivationFunction, get_activation_by_name
 
 
-
 class Vision(object):
     __slots__ = ('dist_to_wall', 'dist_to_apple', 'dist_to_self')
+
     def __init__(self,
                  dist_to_wall: Union[float, int],
                  dist_to_apple: Union[float, int],
@@ -24,13 +24,15 @@ class Vision(object):
         self.dist_to_apple = float(dist_to_apple)
         self.dist_to_self = float(dist_to_self)
 
+
 class DrawableVision(object):
     __slots__ = ('wall_location', 'apple_location', 'self_location')
+
     def __init__(self,
-                wall_location: Point,
-                apple_location: Optional[Point] = None,
-                self_location: Optional[Point] = None,
-                ):
+                 wall_location: Point,
+                 apple_location: Optional[Point] = None,
+                 self_location: Optional[Point] = None,
+                 ):
         self.wall_location = wall_location
         self.apple_location = apple_location
         self.self_location = self_location
@@ -39,7 +41,7 @@ class DrawableVision(object):
 class Snake(Individual):
     def __init__(self, board_size: Tuple[int, int],
                  chromosome: Optional[Dict[str, List[np.ndarray]]] = None,
-                 start_pos: Optional[Point] = None, 
+                 start_pos: Optional[Point] = None,
                  apple_seed: Optional[int] = None,
                  initial_velocity: Optional[str] = None,
                  starting_direction: Optional[str] = None,
@@ -61,12 +63,11 @@ class Snake(Individual):
         self.board_size = board_size
         self.hidden_layer_architecture = hidden_layer_architecture
 
-        
         self.hidden_activation = hidden_activation
         self.output_activation = output_activation
 
         if not start_pos:
-            #@TODO: undo this
+            # @TODO: undo this
             # x = random.randint(10, self.board_size[0] - 9)
             # y = random.randint(10, self.board_size[1] - 9)
             x = random.randint(2, self.board_size[0] - 3)
@@ -78,21 +79,28 @@ class Snake(Individual):
         self._vision_type = VISION_8
         self._vision: List[Vision] = [None] * len(self._vision_type)
         # This is just used so I can draw and is not actually used in the NN
-        self._drawable_vision: List[DrawableVision] = [None] * len(self._vision_type)
+        self._drawable_vision: List[DrawableVision] = [
+            None] * len(self._vision_type)
 
         # Setting up network architecture
         # Each "Vision" has 3 distances it tracks: wall, apple and self
         # there are also one-hot encoded direction and one-hot encoded tail direction,
         # each of which have 4 possibilities.
-        num_inputs = len(self._vision_type) * 3 + 4 + 4 #@TODO: Add one-hot back in 
+        num_inputs = len(self._vision_type) * 3 + 4 + \
+            4  # @TODO: Add one-hot back in
         self.vision_as_array: np.ndarray = np.zeros((num_inputs, 1))
-        self.network_architecture = [num_inputs]                          # Inputs
-        self.network_architecture.extend(self.hidden_layer_architecture)  # Hidden layers
-        self.network_architecture.append(4)                               # 4 outputs, ['u', 'd', 'l', 'r']
+        self.network_architecture = [
+            num_inputs]                          # Inputs
+        self.network_architecture.extend(
+            self.hidden_layer_architecture)  # Hidden layers
+        # 4 outputs, ['u', 'd', 'l', 'r']
+        self.network_architecture.append(4)
         self.network = FeedForwardNetwork(self.network_architecture,
-                                          get_activation_by_name(self.hidden_activation),
-                                          get_activation_by_name(self.output_activation)
-        )
+                                          get_activation_by_name(
+                                              self.hidden_activation),
+                                          get_activation_by_name(
+                                              self.output_activation)
+                                          )
 
         # If chromosome is set, take it
         if chromosome:
@@ -103,7 +111,6 @@ class Snake(Individual):
             # self._chromosome = {}
             # self.encode_chromosome()
             pass
-            
 
         # For creating the next apple
         if apple_seed is None:
@@ -117,7 +124,8 @@ class Snake(Individual):
         else:
             starting_direction = self.possible_directions[random.randint(0, 3)]
 
-        self.starting_direction = starting_direction  # Only needed for saving/loading replay
+        # Only needed for saving/loading replay
+        self.starting_direction = starting_direction
         self.init_snake(self.starting_direction)
         self.initial_velocity = initial_velocity
         self.init_velocity(self.starting_direction, self.initial_velocity)
@@ -126,10 +134,11 @@ class Snake(Individual):
     @property
     def fitness(self):
         return self._fitness
-    
+
     def calculate_fitness(self):
         # Give positive minimum fitness for roulette wheel selection
-        self._fitness = (self._frames) + ((2**self.score) + (self.score**2.1)*500) - (((.25 * self._frames)**1.3) * (self.score**1.2))
+        self._fitness = (self._frames) + ((2**self.score) + (self.score**2.1)
+                                          * 500) - (((.25 * self._frames)**1.3) * (self.score**1.2))
         # self._fitness = (self._frames) + ((2**self.score) + (self.score**2.1)*500) - (((.25 * self._frames)) * (self.score))
         self._fitness = max(self._fitness, .1)
 
@@ -166,10 +175,9 @@ class Snake(Individual):
             vision, drawable_vision = self.look_in_direction(slope)
             self._vision[i] = vision
             self._drawable_vision[i] = drawable_vision
-        
+
         # Update the input array
         self._vision_as_input_array()
-
 
     def look_in_direction(self, slope: Slope) -> Tuple[Vision, DrawableVision]:
         dist_to_wall = None
@@ -208,7 +216,6 @@ class Snake(Individual):
             total_distance += distance
         assert(total_distance != 0.0)
 
-
         # @TODO: May need to adjust numerator in case of VISION_16 since step size isn't always going to be on a tile
         dist_to_wall = 1.0 / total_distance
 
@@ -221,7 +228,8 @@ class Snake(Individual):
             dist_to_self = 1.0 / dist_to_self
 
         vision = Vision(dist_to_wall, dist_to_apple, dist_to_self)
-        drawable_vision = DrawableVision(wall_location, apple_location, self_location)
+        drawable_vision = DrawableVision(
+            wall_location, apple_location, self_location)
         return (vision, drawable_vision)
 
     def _vision_as_input_array(self) -> None:
@@ -229,7 +237,7 @@ class Snake(Individual):
         # rows [3-5] are _vision[1].dist_to_wall, _vision[1].dist_to_apple, _vision[1].dist_to_self, etc. etc. etc.
         for va_index, v_index in zip(range(0, len(self._vision) * 3, 3), range(len(self._vision))):
             vision = self._vision[v_index]
-            self.vision_as_array[va_index, 0]     = vision.dist_to_wall
+            self.vision_as_array[va_index, 0] = vision.dist_to_wall
             self.vision_as_array[va_index + 1, 0] = vision.dist_to_apple
             self.vision_as_array[va_index + 2, 0] = vision.dist_to_self
 
@@ -239,25 +247,29 @@ class Snake(Individual):
         # One-hot encode direction
         direction_one_hot = np.zeros((len(self.possible_directions), 1))
         direction_one_hot[self.possible_directions.index(direction), 0] = 1
-        self.vision_as_array[i: i + len(self.possible_directions)] = direction_one_hot
+        self.vision_as_array[i: i +
+                             len(self.possible_directions)] = direction_one_hot
 
         i += len(self.possible_directions)
 
         # One-hot tail direction
         tail_direction_one_hot = np.zeros((len(self.possible_directions), 1))
-        tail_direction_one_hot[self.possible_directions.index(self.tail_direction), 0] = 1
-        self.vision_as_array[i: i + len(self.possible_directions)] = tail_direction_one_hot
+        tail_direction_one_hot[self.possible_directions.index(
+            self.tail_direction), 0] = 1
+        self.vision_as_array[i: i +
+                             len(self.possible_directions)] = tail_direction_one_hot
 
     def _within_wall(self, position: Point) -> bool:
         return position.x >= 0 and position.y >= 0 and \
-               position.x < self.board_size[0] and \
-               position.y < self.board_size[1]
+            position.x < self.board_size[0] and \
+            position.y < self.board_size[1]
 
     def generate_apple(self) -> None:
         width = self.board_size[0]
         height = self.board_size[1]
         # Find all possible points where the snake is not currently
-        possibilities = [divmod(i, height) for i in range(width * height) if divmod(i, height) not in self._body_locations]
+        possibilities = [divmod(i, height) for i in range(
+            width * height) if divmod(i, height) not in self._body_locations]
         if possibilities:
             loc = self.rand_apple.choice(possibilities)
             self.apple_location = Point(loc[0], loc[1])
@@ -272,20 +284,24 @@ class Snake(Individual):
         starting_direction: ('u', 'd', 'l', 'r')
             direction that the snake should start facing. Whatever the direction is, the head
             of the snake will begin pointing that way.
-        """        
+        """
         head = self.start_pos
         # Body is below
         if starting_direction == 'u':
-            snake = [head, Point(head.x, head.y + 1), Point(head.x, head.y + 2)]
+            snake = [head, Point(head.x, head.y + 1),
+                     Point(head.x, head.y + 2)]
         # Body is above
         elif starting_direction == 'd':
-            snake = [head, Point(head.x, head.y - 1), Point(head.x, head.y - 2)]
+            snake = [head, Point(head.x, head.y - 1),
+                     Point(head.x, head.y - 2)]
         # Body is to the right
         elif starting_direction == 'l':
-            snake = [head, Point(head.x + 1, head.y), Point(head.x + 2, head.y)]
+            snake = [head, Point(head.x + 1, head.y),
+                     Point(head.x + 2, head.y)]
         # Body is to the left
         elif starting_direction == 'r':
-            snake = [head, Point(head.x - 1, head.y), Point(head.x - 2, head.y)]
+            snake = [head, Point(head.x - 1, head.y),
+                     Point(head.x - 2, head.y)]
 
         self.snake_array = deque(snake)
         self._body_locations = set(snake)
@@ -296,7 +312,8 @@ class Snake(Individual):
             self._frames += 1
             self.look()
             self.network.feed_forward(self.vision_as_array)
-            self.direction = self.possible_directions[np.argmax(self.network.out)]
+            self.direction = self.possible_directions[np.argmax(
+                self.network.out)]
             return True
         else:
             return False
@@ -309,7 +326,7 @@ class Snake(Individual):
         # Is the direction valid?
         if direction not in self.possible_directions:
             return False
-        
+
         # Find next position
         # tail = self.snake_array.pop()  # Pop tail since we can technically move to the tail
         head = self.snake_array[0]
@@ -329,7 +346,7 @@ class Snake(Individual):
                 # Pop tail and add next_pos (same as tail) to front
                 # No need to remove tail from _body_locations since it will go back in anyway
                 self.snake_array.pop()
-                self.snake_array.appendleft(next_pos) 
+                self.snake_array.appendleft(next_pos)
             # Eat the apple
             elif next_pos == self.apple_location:
                 self.score += 1
@@ -362,8 +379,8 @@ class Snake(Individual):
                 self.tail_direction = 'u'
 
             self._frames_since_last_apple += 1
-            #@NOTE: If you have different sized grids you may want to change this
-            if self._frames_since_last_apple > 100:
+            # @NOTE: If you have different sized grids you may want to change this
+            if self._frames_since_last_apple > 200:
                 self.is_alive = False
                 return False
 
@@ -409,6 +426,7 @@ class Snake(Individual):
         # Tail starts moving the same direction
         self.tail_direction = self.direction
 
+
 def save_snake(population_folder: str, individual_name: str, snake: Snake, settings: Dict[str, Any]) -> None:
     # Make population folder if it doesn't exist
     if not os.path.exists(population_folder):
@@ -433,7 +451,8 @@ def save_snake(population_folder: str, individual_name: str, snake: Snake, setti
     constructor['apple_seed'] = snake.apple_seed
     constructor['initial_velocity'] = snake.initial_velocity
     constructor['starting_direction'] = snake.starting_direction
-    snake_constructor_file = os.path.join(individual_dir, 'constructor_params.json')
+    snake_constructor_file = os.path.join(
+        individual_dir, 'constructor_params.json')
 
     # Save
     with open(snake_constructor_file, 'w', encoding='utf-8') as out:
@@ -450,12 +469,14 @@ def save_snake(population_folder: str, individual_name: str, snake: Snake, setti
         np.save(os.path.join(individual_dir, w_name), weights)
         np.save(os.path.join(individual_dir, b_name), bias)
 
+
 def load_snake(population_folder: str, individual_name: str, settings: Optional[Union[Dict[str, Any], str]] = None) -> Snake:
     if not settings:
         f = os.path.join(population_folder, 'settings.json')
         if not os.path.exists(f):
-            raise Exception("settings needs to be passed as an argument if 'settings.json' does not exist under population folder")
-        
+            raise Exception(
+                "settings needs to be passed as an argument if 'settings.json' does not exist under population folder")
+
         with open(f, 'r', encoding='utf-8') as fp:
             settings = json.load(fp)
 
@@ -472,17 +493,19 @@ def load_snake(population_folder: str, individual_name: str, settings: Optional[
         extension = fname.rsplit('.npy', 1)
         if len(extension) == 2:
             param = extension[0]
-            params[param] = np.load(os.path.join(population_folder, individual_name, fname))
+            params[param] = np.load(os.path.join(
+                population_folder, individual_name, fname))
         else:
             continue
 
     # Load constructor params for the specific snake
     constructor_params = {}
-    snake_constructor_file = os.path.join(population_folder, individual_name, 'constructor_params.json')
+    snake_constructor_file = os.path.join(
+        population_folder, individual_name, 'constructor_params.json')
     with open(snake_constructor_file, 'r', encoding='utf-8') as fp:
         constructor_params = json.load(fp)
 
-    snake = Snake(settings['board_size'], chromosome=params, 
+    snake = Snake(settings['board_size'], chromosome=params,
                   start_pos=Point.from_dict(constructor_params['start_pos']),
                   apple_seed=constructor_params['apple_seed'],
                   initial_velocity=constructor_params['initial_velocity'],
