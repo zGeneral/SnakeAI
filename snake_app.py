@@ -76,8 +76,8 @@ class MainWindow(QtWidgets.QMainWindow):
         #                        apple_and_self_vision=self.settings['apple_and_self_vision'])
         #     individuals.append(individual)
 
-        for i in range(self.settings['num_parents']):
-            individual_name = f'best_snake_gen_{i+700}'
+        for i in range(10):
+            individual_name = f'best_snake_gen_{i+1700}'
             individual = load_snake('./best_generation', individual_name, None)
             individuals.append(individual)
 
